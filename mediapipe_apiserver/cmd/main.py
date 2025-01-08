@@ -1,3 +1,14 @@
+# performance tuning
+import os
+os.environ["OMP_NUM_THREADS"] = "1"
+os.environ["OPENBLAS_NUM_THREADS"] = "1"
+os.environ["MKL_NUM_THREADS"] = "1"
+os.environ["VECLIB_MAXIMUM_THREADS"] = "1"
+os.environ["NUMEXPR_NUM_THREADS"] = "1"
+
+import cv2
+cv2.setNumThreads(0)
+
 import click
 
 from mediapipe_apiserver.camera import KinectCamera 
