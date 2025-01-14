@@ -11,7 +11,7 @@ cv2.setNumThreads(0)
 
 import click
 
-from mediapipe_apiserver.camera import KinectCamera 
+from mediapipe_apiserver.camera import ZED2Camera
 from mediapipe_apiserver.detector import MediaPipeDetector
 from mediapipe_apiserver.common.option import CameraOption
 from mediapipe_apiserver.restful import controller_app
@@ -31,7 +31,7 @@ def cli(ctx):
 def serve(ctx, port: int, debug: bool):
     # create instances
     opt = CameraOption(use_depth=False)
-    cam = KinectCamera("0", opt)
+    cam = ZED2Camera("0", opt)
     cam.open()
     detector = MediaPipeDetector()
 
