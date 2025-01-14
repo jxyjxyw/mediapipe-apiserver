@@ -3,7 +3,7 @@
 ## Get Started
 
 ```shell
-pip install -r requirements.txt -f https://mirror.sjtu.edu.cn/pytorch-wheels/torch_stable.html
+pip install -r requirements.txt
 ```
 
 Acquire ckpt for mmpose via https://github.com/open-mmlab/mmpose/tree/main/projects/rtmo and put it in `./ckpt`. After that, select the corresponding configuration file, the default configuration is for "rtmo-t_8xb32-600e_body7-416x416-f48f75cb_20231219.pth"
@@ -24,7 +24,9 @@ python ./playground/test_ws_client.py
 ## TODO
 
 - [x] update requirements
-- [x] add mmpose support
+- [ ] add mmpose support
+  - [x] add mmpose interface
+  - [ ] make mmpose keypoints align with mediapipe keypoints 
 - [x] add ZED-2 camera support
 - [ ] raw image api, annotated image API
 - [ ] client library
@@ -34,9 +36,11 @@ python ./playground/test_ws_client.py
 
 ### Requirements
 
-- A Azure Kinect camera.
-- Azure Kinect SDK Installed. See [https://learn.microsoft.com/en-us/azure/kinect-dk/sensor-sdk-download](https://learn.microsoft.com/en-us/azure/kinect-dk/sensor-sdk-download).
-- A Websocket debug tool, such as `wscat`(Run `npm -g install wscat` to install).
+- To use the ZED-2 camera, it's recommend to install the ZED SDK. See [https://www.stereolabs.com/developers/release/](https://www.stereolabs.com/developers/release/).
+
+- To use the Azure Kinect camera, please follow the instructions in the [Azure Kinect SDK](https://learn.microsoft.com/en-us/azure/kinect-dk/sensor-sdk-download).
+
+- A Websocket debug tool, such as `wscat` (Run `npm -g install wscat` to install).
 
 ## Licenses
 
