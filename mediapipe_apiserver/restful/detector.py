@@ -24,11 +24,14 @@ async def _dummy_sender(ws: WebsocketImplProtocol, camera, detector):
     while True:
         try:
             # send ping message
-            image, err = camera.read()
-            if err is not None:
-                logger.error(err)
-            image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-            _, uvs = detector.get_landmarks(image)
+            if detector.__class__.__name__ == "Zed2Detector" or detector.__class__.__name__ == "KinectDetector":   # Use Zed2 3D Pose Detector
+                _, uvs = detector.get_landmarks()
+            else:
+                image, err = camera.read()
+                if err is not None:
+                    logger.error(err)
+                image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+                _, uvs = detector.get_landmarks(image)
             res = {
                 'time': time.time_ns(),
                 'uvs': uvs,

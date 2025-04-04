@@ -9,6 +9,8 @@ import time
 
 from loguru import logger
 
+import torch
+
 CONFIG_WS_ENDPOINT = os.environ.get("CONFIG_WS_ENDPOINT", "ws://127.0.0.1:3000/v1/detector/dummy")
 _interval_sec = 2
 async def connect_to_server():
@@ -26,5 +28,6 @@ async def connect_to_server():
                 logger.info(f"refresh rate: {(seq - last_seq)/ _interval_sec}")
                 start_t = time.time()
                 last_seq = seq
+                print(torch.tensor(eval(message)['uvs']).shape)
 
 asyncio.run(connect_to_server())

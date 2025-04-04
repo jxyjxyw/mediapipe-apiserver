@@ -6,3 +6,6 @@ build
 *.tar.gz
 *.whl
 *.egg-info
+
+ckpt
+Log

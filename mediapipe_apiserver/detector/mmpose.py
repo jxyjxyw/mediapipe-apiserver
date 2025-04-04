@@ -90,8 +90,9 @@ class MyPoseInferencer(Pose2DInferencer):
         uvs = []
         # print (preds)
         for instance in selected_instances:
-            # print(instance)
+            print(instance.keypoints[0])
             uvs.append([(keypoint[0], keypoint[1], keypoint[2]) for keypoint in instance.keypoints])
+            # print(uvs)
 
         annotated_image = np.copy(image) if require_annotation else None
         if require_annotation and annotated_image is not None:
@@ -106,14 +107,14 @@ class MyPoseInferencer(Pose2DInferencer):
 class MMPoseDetector:
     def __init__(self, model_asset_path: str = None, model_config_path: str = None) -> None:
         if model_asset_path is None or model_asset_path == "":
-            # model_asset_path = r"ckpt/rtmo-t_8xb32-600e_body7-416x416-f48f75cb_20231219.pth"
+            model_asset_path = r"ckpt/rtmo-t_8xb32-600e_body7-416x416-f48f75cb_20231219.pth"
             # model_asset_path = r"ckpt/rtmo-m_16xb16-600e_body7-640x640-39e78cc4_20231211.pth"
-            model_asset_path = r"ckpt/rtmo-l_16xb16-600e_body7-640x640-b37118ce_20231211.pth"
+            # model_asset_path = r"ckpt/rtmo-l_16xb16-600e_body7-640x640-b37118ce_20231211.pth"
             
            
-            # relative_path = os.path.join('.mim', 'configs', 'body_2d_keypoint', 'rtmo', 'body7', 'rtmo-t_8xb32-600e_body7-416x416.py')
+            relative_path = os.path.join('.mim', 'configs', 'body_2d_keypoint', 'rtmo', 'body7', 'rtmo-t_8xb32-600e_body7-416x416.py')
             # relative_path = os.path.join('.mim', 'configs', 'body_2d_keypoint', 'rtmo', 'body7', 'rtmo-m_16xb16-600e_body7-640x640.py')
-            relative_path = os.path.join('.mim', 'configs', 'body_2d_keypoint', 'rtmo', 'body7', 'rtmo-l_16xb16-600e_body7-640x640.py')
+            # relative_path = os.path.join('.mim', 'configs', 'body_2d_keypoint', 'rtmo', 'body7', 'rtmo-l_16xb16-600e_body7-640x640.py')
             model_config_path = os.path.join(mmpose.__path__[0], relative_path)
             
                   
