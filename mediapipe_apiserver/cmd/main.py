@@ -12,7 +12,7 @@ cv2.setNumThreads(0)
 import click
 
 from mediapipe_apiserver.camera import ZED2Camera
-from mediapipe_apiserver.detector import MediaPipeDetector, Zed2Detector, KinectDetector
+from mediapipe_apiserver.detector import MediaPipeDetector, Zed2Detector, KinectDetector, Zed2MMPoseDetector
 from mediapipe_apiserver.common.option import CameraOption
 from mediapipe_apiserver.restful import controller_app
 
@@ -34,8 +34,9 @@ def serve(ctx, port: int, debug: bool):
     cam = ZED2Camera("0", opt)
     cam.open()
     # detector = MediaPipeDetector()
-    detector = Zed2Detector()
+    # detector = Zed2Detector()
     # detector = KinectDetector()
+    detector = Zed2MMPoseDetector()
 
     # hook objects to controller for later access
     controller_app.ctx.camera = cam

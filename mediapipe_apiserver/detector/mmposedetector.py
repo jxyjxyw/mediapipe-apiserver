@@ -85,14 +85,13 @@ class MyPoseInferencer(Pose2DInferencer):
             selected_instances =self.select_instance(result) 
         # print(selected_instances)
         if selected_instances is None:
-            return image, []
+            return image, None, None
         selected_instances = [inst for inst in selected_instances]
         uvs = []
         # print (preds)
         for instance in selected_instances:
-            print(instance.keypoints[0])
-            uvs.append([(keypoint[0], keypoint[1], keypoint[2]) for keypoint in instance.keypoints])
-            # print(uvs)
+            uvs = instance.keypoints[0]     # [17, 2]
+            scores = instance.keypoint_scores[0]    # [17, ]
 
         annotated_image = np.copy(image) if require_annotation else None
         if require_annotation and annotated_image is not None:
@@ -101,29 +100,45 @@ class MyPoseInferencer(Pose2DInferencer):
                 annotated_image = self.visualizer.add_datasample(
                     'result', annotated_image, data_sample=result, draw_gt=False, draw_heatmap=False, draw_bbox=True, show_kpt_idx=False, skeleton_style='mmpose'
                 )
-        return annotated_image, uvs
+        return annotated_image, uvs, scores
 
    
 class MMPoseDetector:
     def __init__(self, model_asset_path: str = None, model_config_path: str = None) -> None:
         if model_asset_path is None or model_asset_path == "":
-            model_asset_path = r"ckpt/rtmo-t_8xb32-600e_body7-416x416-f48f75cb_20231219.pth"
+            # model_asset_path = r"ckpt/rtmo-t_8xb32-600e_body7-416x416-f48f75cb_20231219.pth"
             # model_asset_path = r"ckpt/rtmo-m_16xb16-600e_body7-640x640-39e78cc4_20231211.pth"
-            # model_asset_path = r"ckpt/rtmo-l_16xb16-600e_body7-640x640-b37118ce_20231211.pth"
+            model_asset_path = r"D:\jxy\mediapipe-apiserver\ckpt\rtmo-l_16xb16-600e_body7-640x640-b37118ce_20231211.pth"
             
            
-            relative_path = os.path.join('.mim', 'configs', 'body_2d_keypoint', 'rtmo', 'body7', 'rtmo-t_8xb32-600e_body7-416x416.py')
+            # relative_path = os.path.join('.mim', 'configs', 'body_2d_keypoint', 'rtmo', 'body7', 'rtmo-t_8xb32-600e_body7-416x416.py')
             # relative_path = os.path.join('.mim', 'configs', 'body_2d_keypoint', 'rtmo', 'body7', 'rtmo-m_16xb16-600e_body7-640x640.py')
-            # relative_path = os.path.join('.mim', 'configs', 'body_2d_keypoint', 'rtmo', 'body7', 'rtmo-l_16xb16-600e_body7-640x640.py')
+            relative_path = os.path.join('.mim', 'configs', 'body_2d_keypoint', 'rtmo', 'body7', 'rtmo-l_16xb16-600e_body7-640x640.py')
             model_config_path = os.path.join(mmpose.__path__[0], relative_path)
             
                   
         self.inferencer = MyPoseInferencer(
             model=model_config_path,
             weights=model_asset_path
-        )  
-    def get_landmarks(self, image: np.ndarray, require_annotation=True) -> Tuple[Optional[np.ndarray], List[List[Tuple[float, float]]]]:
-        annotated_image, landmarks = self.inferencer.get_landmarks(image, require_annotation=require_annotation)
-        return annotated_image, landmarks
-        
+        ) 
 
+    def get_landmarks(self, image: np.ndarray, require_annotation=True) -> Tuple[Optional[np.ndarray], List[List[Tuple[float, float]]]]:
+        annotated_image, uvs, scores = self.inferencer.get_landmarks(image, require_annotation=require_annotation)
+        return annotated_image, uvs, scores
+        
+if __name__ == '__main__':
+    import cv2
+    cam = cv2.VideoCapture(0)
+    cam.set(cv2.CAP_PROP_FPS, 60)
+    while True:
+        detector = MMPoseDetector()
+        ret, frame = cam.read()
+        if not ret:
+            break
+        annotated_image, landmarks = detector.get_landmarks(frame, require_annotation=True)
+        cv2.imshow("Annotated Image", annotated_image)
+        key = cv2.waitKey(1)
+        if key == 27:
+            break
+    cam.release()
+    cv2.destroyAllWindows()

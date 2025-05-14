@@ -21,7 +21,7 @@ class Zed2Detector:
         # https://www.stereolabs.com/docs/api/python/classpyzed_1_1sl_1_1UNIT.html
         init_params.coordinate_units = sl.UNIT.METER  # Set coordinate units
 
-        init_params.depth_mode = sl.DEPTH_MODE.ULTRA
+        init_params.depth_mode = sl.DEPTH_MODE.NEURAL
 
         # https://www.stereolabs.com/docs/api/python/classpyzed_1_1sl_1_1COORDINATE__SYSTEM.html
         init_params.coordinate_system = sl.COORDINATE_SYSTEM.IMAGE
@@ -39,8 +39,8 @@ class Zed2Detector:
 
         body_param = sl.BodyTrackingParameters()
         body_param.enable_tracking = True                # Track people across images flow
-        body_param.enable_body_fitting = True            # Smooth skeleton move
-        body_param.detection_model = sl.BODY_TRACKING_MODEL.HUMAN_BODY_FAST     # 3 choices
+        body_param.enable_body_fitting = False            # Smooth skeleton move
+        body_param.detection_model = sl.BODY_TRACKING_MODEL.HUMAN_BODY_ACCURATE     # 3 choices
         body_param.body_format = sl.BODY_FORMAT.BODY_38  # Choose the BODY_FORMAT you wish to use (17, 34, 38)
 
         # Enable Object Detection module
@@ -63,6 +63,7 @@ class Zed2Detector:
         
         # Grab an image
         if self.zed.grab() == sl.ERROR_CODE.SUCCESS:
+            cam_timestamp = self.zed.get_timestamp(sl.TIME_REFERENCE.IMAGE).get_milliseconds()
             # Retrieve left image
             self.zed.retrieve_image(self.image, sl.VIEW.LEFT, sl.MEM.CPU, self.display_resolution)
             # Retrieve bodies
@@ -95,11 +96,21 @@ class Zed2Detector:
                     for i in range(len(kpts2d)):
                         if kpts2d[i][0] < 0 or kpts2d[i][1] < 0:
                             continue
-                        cv2.circle(annotated_image, (int(kpts2d[i][0]), int(kpts2d[i][1])), 5, (0, 255, 0), -1)
+                        if i in [5, 7, 9, 11, 13, 15]:
+                            cv2.circle(annotated_image, (int(kpts2d[i][0]), int(kpts2d[i][1])), 5, (255, 0, 0), -1)
+                        else:
+                            cv2.circle(annotated_image, (int(kpts2d[i][0]), int(kpts2d[i][1])), 5, (0, 255, 0), -1)
+                        # 显示可信度 Black Bold
+                        # cv2.putText(annotated_image, str(int(conf[i][0] * 10)), (int(kpts2d[i][0]), int(kpts2d[i][1])), cv2.FONT_HERSHEY_SIMPLEX, 2, (0, 0,255), 2, cv2.LINE_AA)
+            cam_timestamp_current = self.zed.get_timestamp(sl.TIME_REFERENCE.CURRENT).get_milliseconds()
+            delta_t = cam_timestamp_current - cam_timestamp
+            delta_t_list.append(delta_t)
+            
         
         landmarks = landmarks.tolist()
-        return annotated_image, landmarks
+        return annotated_image, landmarks, cam_timestamp
     
+delta_t_list = []
 if __name__ == "__main__":
     coco_skeleton = [
         (0, 1), (0, 2), (1, 2), (1, 3), (2, 4), (3, 5), (4, 6), (5, 6),
@@ -108,45 +119,64 @@ if __name__ == "__main__":
     ]
 
     import matplotlib.pyplot as plt
+    import tqdm
     fig = plt.figure()
     ax = fig.add_subplot(111, projection='3d')
     
 
     detector = Zed2Detector()
     key_wait = 10
-    while True:
-        anno_img, landmarks = detector.get_landmarks(require_annotation=True)
-        # time.sleep(0.5)
-        if anno_img is not None:
-            cv2.imshow("Annotated Image", anno_img)
-            key = cv2.waitKey(key_wait)
-            if key == 113: # for 'q' key
-                print("Exiting...")
-                break
-            if key == 109: # for 'm' key
-                if (key_wait>0):
-                    print("Pause")
-                    key_wait = 0 
-                else : 
-                    print("Restart")
-                    key_wait = 10
+    try:
+        with tqdm.tqdm() as pbar:
+            while True:
+                pbar.update()
+                anno_img, landmarks, _ = detector.get_landmarks(require_annotation=False)
+                # time.sleep(0.5)
+                if anno_img is not None:
+                    cv2.imshow("Annotated Image", anno_img)
+                    key = cv2.waitKey(key_wait)
+                    if key == 113: # for 'q' key
+                        print("Exiting...")
+                        break
+                    if key == 109: # for 'm' key
+                        if (key_wait>0):
+                            print("Pause")
+                            key_wait = 0 
+                        else : 
+                            print("Restart")
+                            key_wait = 10
+                
+                # print(landmarks)
+                if True:
+                    landmarks = np.array(landmarks)
+                    ax.cla()
+                    ax.scatter(landmarks[:, 0], landmarks[:, 1], landmarks[:, 2], c='b', marker='o')
+                    # plt skeleton
+                    for i, j in coco_skeleton:
+                        ax.plot([landmarks[i][0], landmarks[j][0]], [landmarks[i][1], landmarks[j][1]], [landmarks[i][2], landmarks[j][2]], c='r')
+
+                    # label
+                    ax.set_xlabel('X')
+                    ax.set_ylabel('Y')
+                    ax.set_zlabel('Z')
+                    ax.set_xlim(-1, 1)
+                    ax.set_ylim(-1, 1)
+                    ax.set_zlim(1, 3)
+
+                    plt.draw()
+                    plt.pause(0.1)
+    except:
+        delta_t_list = np.array(delta_t_list)
+        print("mean:", np.mean(delta_t_list))
+        print("std:", np.std(delta_t_list))
+        print("max:", np.max(delta_t_list))
+        print("min:", np.min(delta_t_list))
+        # boxplot
         
-        # print(landmarks)
-        if True:
-            landmarks = np.array(landmarks)
-            ax.cla()
-            ax.scatter(landmarks[:, 0], landmarks[:, 1], landmarks[:, 2], c='b', marker='o')
-            # plt skeleton
-            for i, j in coco_skeleton:
-                ax.plot([landmarks[i][0], landmarks[j][0]], [landmarks[i][1], landmarks[j][1]], [landmarks[i][2], landmarks[j][2]], c='r')
-
-            # label
-            ax.set_xlabel('X')
-            ax.set_ylabel('Y')
-            ax.set_zlabel('Z')
-
-            plt.draw()
-            plt.pause(0.1)
+        plt.figure(figsize=(10, 5))
+        plt.boxplot(delta_t_list, vert=False)
+        plt.title("Delta T")
+        plt.show()
 
 
         

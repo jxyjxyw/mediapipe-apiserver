@@ -43,21 +43,67 @@ class KinectDetector:
             kpts3d[np.isnan(kpts3d)] = np.random.rand(np.sum(np.isnan(kpts3d)))
 
             if require_annotation:
-                body2d = body_frame.get_body2d(0)
-                kpts2d = body2d.numpy()
-                kpts2d = kpts2d[self.kinect_to_coco]
 
                 # Annotate the image with the detected landmarks
                 cap, annotated_image = capture.get_color_image()
-                for i in range(len(kpts2d)):
-                    if kpts2d[i][0] < 0 or kpts2d[i][1] < 0:
-                        continue
-                    cv2.circle(annotated_image, (int(kpts2d[i][0]), int(kpts2d[i][1])), 5, (0, 255, 0), -1)
+                color_skeleton = body_frame.draw_bodies(annotated_image, pykinect.K4A_CALIBRATION_TYPE_COLOR)
         
         kpts3d = kpts3d.tolist()
         return annotated_image, kpts3d
     
 if __name__ == "__main__":
+    def create_skeleton(array):
+    # 创建一个空的点云
+        point_cloud = o3d.geometry.PointCloud()
+
+        # 创建骨架的线段
+        lines = []
+        colors = []
+
+        # 创建球体表示每个关节
+        spheres = []
+        
+        for i, point in enumerate(array):
+            # 创建球体表示关节
+            sphere = o3d.geometry.TriangleMesh.create_sphere(radius=0.05)
+            sphere.translate(point)
+            spheres.append(sphere)
+
+        # 为骨骼中的每条连接添加线段
+        for (start, end) in coco_skeleton:
+            lines.append([start, end])
+            colors.append([1, 0, 0])  # 设置线条颜色为红色
+
+        # 创建线段
+        line_set = o3d.geometry.LineSet()
+        line_set.points = o3d.utility.Vector3dVector(array)
+        line_set.lines = o3d.utility.Vector2iVector(lines)
+        line_set.colors = o3d.utility.Vector3dVector(colors)
+
+        return spheres, line_set
+
+    def update_visualization(array):
+        # 清空之前的几何体
+        vis.clear_geometries()
+        
+        # 创建骨架模型
+        spheres, line_set = create_skeleton(array)
+
+        # 添加球体和线段到可视化中
+        for sphere in spheres:
+            vis.add_geometry(sphere)
+        
+        vis.add_geometry(line_set)
+
+        # 创建坐标系
+        coordinate_frame = o3d.geometry.TriangleMesh.create_coordinate_frame(size=0.2)
+        vis.add_geometry(coordinate_frame)
+
+        # 更新可视化窗口
+        vis.poll_events()
+        vis.update_renderer()
+
+    import open3d as o3d
     coco_skeleton = [
         (0, 1), (0, 2), (1, 2), (1, 3), (2, 4), (3, 5), (4, 6), (5, 6),
         (5, 7), (7, 9), (6, 8), (8, 10), (5, 11), (6, 12),
@@ -65,9 +111,16 @@ if __name__ == "__main__":
     ]
     detector = KinectDetector()
     key_wait = 10
+
+    vis = o3d.visualization.Visualizer()
+    vis.create_window()
     with tqdm.tqdm() as pbar:
         while True:
             anno_img, landmarks = detector.get_landmarks(require_annotation=False)
+
+            p3d = np.array(landmarks)[:, :3]
+            update_visualization(p3d)
+
             # time.sleep(0.5)
             if anno_img is not None:
                 cv2.imshow("Annotated Image", anno_img)

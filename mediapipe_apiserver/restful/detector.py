@@ -24,8 +24,16 @@ async def _dummy_sender(ws: WebsocketImplProtocol, camera, detector):
     while True:
         try:
             # send ping message
-            if detector.__class__.__name__ == "Zed2Detector" or detector.__class__.__name__ == "KinectDetector":   # Use Zed2 3D Pose Detector
+            if detector.__class__.__name__ == "Zed2Detector" or "Zed2MMPoseDetector":  # Use Zed2 3D Pose Detector
+                _, uvs, timestamp = detector.get_landmarks()
+            elif detector.__class__.__name__ == "KinectDetector":   
                 _, uvs = detector.get_landmarks()
+            elif detector.__class__.__name__ == "MMPoseDetector":  # Use MMPoseDetector 2D Pose Detector
+                image, err = camera.read()
+                if err is not None:
+                    logger.error(err)
+                image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+                _, uvs = detector.get_landmarks(image)
             else:
                 image, err = camera.read()
                 if err is not None:
@@ -34,6 +42,7 @@ async def _dummy_sender(ws: WebsocketImplProtocol, camera, detector):
                 _, uvs = detector.get_landmarks(image)
             res = {
                 'time': time.time_ns(),
+                'cam_ts': timestamp,
                 'uvs': uvs,
                 'seq': seq
             }
